@@ -1,0 +1,17 @@
+# Node
+node_modules/
+dist/
+
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# OS
+.DS_Store
+
+# Env
+.env
