@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "./ui/Button";
-import { Menu, X, Server } from "lucide-react";
+import { Logo } from "./ui/Logo";
+import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -17,8 +18,8 @@ export function Navbar() {
 
   const navLinks = [
     { name: "Fitur", href: "#fitur" },
-    { name: "Target Pasar", href: "#audiens" },
     { name: "Harga", href: "#harga" },
+    { name: "FAQ", href: "#faq" },
   ];
 
   return (
@@ -31,14 +32,9 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-cyan-500 p-1.5 rounded-md">
-              <Server className="h-4 w-4 text-ink-950" />
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight text-white">
-              KiosHosting
-            </span>
-          </div>
+          <Link to="/">
+            <Logo theme="dark" size="sm" />
+          </Link>
 
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (

@@ -11,11 +11,10 @@ export function Pricing() {
   const plans = [
     {
       name: "Paket Hemat",
-      target: "Blogger & UMKM Pemula",
+      target: "Blogger & UMKM",
       monthly: "50.000",
       yearly: "500.000",
-      specs: { ram: "1 GB", ssd: "15 GB", sites: "1 Site" },
-      features: ["cPanel / CyberPanel", "Free SSL Certificate", "Support WhatsApp", "Uptime 99.9%"],
+      features: ["Full NVMe SSD", "Free SSL Let's Encrypt", "Support WhatsApp", "Uptime 99.9%", "Auto Backup Mingguan"],
       featured: false,
     },
     {
@@ -23,8 +22,7 @@ export function Pricing() {
       target: "Toko Online & UKM",
       monthly: "100.000",
       yearly: "1.000.000",
-      specs: { ram: "4 GB", ssd: "50 GB", sites: "3 Site" },
-      features: ["Semua Fitur Paket Hemat", "Prioritas Support", "Gratis Domain .com/.id", "Backup Mingguan"],
+      features: ["Semua Paket Hemat", "Prioritas Support", "Domain .com/.id Gratis", "Backup Otomatis", "DDoS Protection", "Staging Environment"],
       featured: true,
     },
     {
@@ -32,8 +30,7 @@ export function Pricing() {
       target: "Agency & Developer",
       monthly: "200.000",
       yearly: "2.000.000",
-      specs: { ram: "8 GB", ssd: "100 GB", sites: "5 Site" },
-      features: ["Semua Fitur Paket Bisnis", "Dedicated IP (Add-on)", "Akses SSH Penuh", "Migrasi Website Gratis"],
+      features: ["Semua Paket Bisnis", "Dedicated IP", "Akses SSH Penuh", "Migrasi Website Gratis", "Multi-PHP 7.4 - 8.3", "Bebas Migrasi"],
       featured: false,
     },
   ];
@@ -46,7 +43,7 @@ export function Pricing() {
             Harga transparan, tanpa biaya tersembunyi
           </h2>
           <p className="mt-3 text-lg text-slate-400">
-            Pilih sesuai kebutuhan hari ini. Upgrade satu klik saat bisnis tumbuh.
+            Pilih sesuai kebutuhan bisnis Anda saat ini. Upgrade ke paket atas kapan saja.
           </p>
         </div>
 
@@ -107,23 +104,10 @@ export function Pricing() {
                 <p className="text-xs text-slate-500 mt-1">per {isYearly ? "tahun" : "bulan"}</p>
               </div>
 
-              <div className={`rounded-xl p-4 mb-6 grid grid-cols-3 gap-3 ${plan.featured ? "bg-white/5 border border-white/10" : "bg-ink-950 border border-slate-800/60"}`}>
-                {[
-                  { k: "RAM", v: plan.specs.ram },
-                  { k: "SSD", v: plan.specs.ssd },
-                  { k: "Kaps", v: plan.specs.sites },
-                ].map((s) => (
-                  <div key={s.k} className="text-center">
-                    <p className="text-[10px] tracking-wider font-medium text-slate-500 uppercase">{s.k}</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{s.v}</p>
-                  </div>
-                ))}
-              </div>
-
-              <ul className="flex-1 space-y-3 mb-8">
+              <ul className="flex-1 space-y-3.5 mb-8">
                 {plan.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2.5">
-                    <Check className={`h-4 w-4 mt-0.5 shrink-0 ${plan.featured ? "text-cyan-400" : "text-cyan-400"}`} />
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-cyan-400" />
                     <span className="text-sm text-slate-300">{f}</span>
                   </li>
                 ))}
@@ -143,7 +127,7 @@ export function Pricing() {
         </div>
 
         <p className="mt-8 text-center text-xs text-slate-500 max-w-2xl mx-auto">
-          Semua paket sudah termasuk SSL gratis dan monitoring uptime. Domain gratis hanya berlaku untuk paket berbayar tahunan.
+          Semua paket sudah termasuk SSL gratis dan monitoring uptime 24/7. Domain gratis berlaku untuk paket tahunan.
         </p>
       </div>
     </section>

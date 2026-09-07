@@ -1,69 +1,86 @@
-// ponytail: localStorage buat demo frontend saja. Ganti backend API saat production.
-const USERS_KEY = "kios_users";
-const SESSION_KEY = "kios_session";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 
-const seedUsers = [
-  {
-    name: "Admin Utama",
-    email: "admin@kioshosting.id",
-    password: "admin123",
-    role: "superadmin",
-  },
-  {
-    name: "Budi Santoso",
-    email: "budi@gmail.com",
-    password: "user1234",
-    role: "user",
-  },
-];
+const TOKEN_KEY = "kios_token";
 
-export function getUsers() {
+function readToken() {
   try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
-
-export function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-export function seedAuth() {
-  if (localStorage.getItem(USERS_KEY)) return getUsers();
-  saveUsers(seedUsers);
-  return seedUsers;
-}
-
-export function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    return localStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
 }
 
-export function login(email, password) {
-  const users = getUsers();
-  const user = users.find((u) => u.email === email && u.password === password);
-  if (!user) return { error: "Email atau kata sandi salah." };
-  const session = { email: user.email, name: user.name, role: user.role };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return { session };
+function setToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }
 
-export function register({ name, email, password }) {
-  const users = getUsers();
-  if (users.find((u) => u.email === email)) return { error: "Email sudah terdaftar." };
-  const user = { name: name.trim(), email, password, role: "user" };
-  saveUsers([...users, user]);
-  const session = { email, name: user.name, role: "user" };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return { session };
+export async function api(method, path, body) {
+  const headers = { "Content-Type": "application/json" };
+  const token = readToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+
+  const res = await fetch(`${API_BASE}${path}`, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Request failed");
+  return data;
 }
 
-export function logout() {
-  localStorage.removeItem(SESSION_KEY);
+export async function login(email, password) {
+  const data = await api("POST", "/auth/login", { email, password });
+  setToken(data.token);
+  return { session: data.user };
+}
+
+export async function register({ name, email, password }) {
+  const data = await api("POST", "/auth/register", { name, email, password });
+  setToken(data.token);
+  return { session: data.user };
+}
+
+export async function logout() {
+  setToken(null);
+}
+
+export function seedAuth() {
+  return null;
+}
+
+export async function fetchMe() {
+  const data = await api("GET", "/auth/me");
+  return data.user;
+}
+
+export function getToken() {
+  return readToken();
+}
+
+export function isAuthenticated() {
+  return !!readToken();
+}
+
+export function getSession() {
+  try {
+    const token = readToken();
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return { email: payload.email, name: payload.name, role: payload.role };
+  } catch {
+    return null;
+  }
+}
+
+export function getUsers() {
+  return [];
+}
+
+export function getUserRole() {
+  const session = getSession();
+  return session ? session.role : null;
 }

@@ -25,3 +25,17 @@
     text-wrap: balance;
   }
 }
+
+[color-scheme="light"],
+[color-scheme="light"] input,
+[color-scheme="light"] select,
+[color-scheme="light"] textarea {
+  color-scheme: light !important;
+}
+
+[color-scheme="light"] input:-webkit-autofill,
+[color-scheme="light"] input:-webkit-autofill:hover, 
+[color-scheme="light"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+}

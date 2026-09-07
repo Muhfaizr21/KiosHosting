@@ -4,6 +4,7 @@ import {
   Users, CreditCard, HardDrives, ShieldCheck, 
   SignOut, ChartPieSlice, Tag, Lifebuoy, GearSix 
 } from "@phosphor-icons/react";
+import { Logo } from "../../components/ui/Logo";
 import { getSession, logout, seedAuth } from "../../lib/auth";
 
 const navItems = [
@@ -40,13 +41,11 @@ export default function AdminLayout() {
   const currentPath = location.pathname;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans [color-scheme:light]" style={{ colorScheme: "light" }}>
       {/* Sidebar */}
       <aside className="sticky top-0 h-screen hidden w-[260px] shrink-0 flex-col bg-slate-900 text-white p-4 lg:flex overflow-y-auto">
         <Link to="/admin" className="flex items-center gap-3 rounded-xl px-3 py-2 group">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 transition-transform group-hover:scale-105">
-            <HardDrives weight="fill" className="h-5 w-5" />
-          </span>
+          <Logo iconOnly theme="dark" size="sm" className="transition-transform group-hover:scale-105" />
           <div>
             <span className="font-display text-sm font-bold tracking-wide">KiosHosting</span>
             <span className="block text-[10px] font-medium text-blue-300 uppercase tracking-widest">Superadmin</span>

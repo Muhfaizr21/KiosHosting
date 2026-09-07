@@ -1,5 +1,7 @@
 import React from "react";
 import { Server, Mail, Phone, ArrowUpRight } from "lucide-react";
+import { FacebookLogo, TwitterLogo, InstagramLogo, GithubLogo } from "@phosphor-icons/react";
+import { Logo } from "./ui/Logo";
 
 export function Footer() {
   return (
@@ -7,12 +9,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
           <div className="max-w-md">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="bg-cyan-500 p-1.5 rounded-md">
-                <Server className="h-4 w-4 text-ink-950" />
-              </div>
-              <span className="font-display font-bold text-lg tracking-tight text-white">KiosHosting</span>
-            </div>
+            <Logo theme="dark" size="sm" className="mb-4" />
             <p className="text-slate-400 leading-relaxed">
               Hosting NVMe untuk bisnis yang butuh situs cepat, stabil, dan siap naik skala.
             </p>
@@ -37,8 +34,8 @@ export function Footer() {
               <h4 className="text-white font-semibold mb-4">Navigasi</h4>
               <div className="space-y-2">
                 <a href="#fitur" className="block text-slate-400 hover:text-white transition-colors">Fitur</a>
-                <a href="#audiens" className="block text-slate-400 hover:text-white transition-colors">Target Pasar</a>
                 <a href="#harga" className="block text-slate-400 hover:text-white transition-colors">Harga</a>
+                <a href="#faq" className="block text-slate-400 hover:text-white transition-colors">FAQ</a>
               </div>
             </div>
           </div>

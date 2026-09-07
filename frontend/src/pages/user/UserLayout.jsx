@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { HardDrives, SignOut, House, CreditCard, Lifebuoy, GearSix } from "@phosphor-icons/react";
 import { getSession, logout, seedAuth } from "../../lib/auth";
+import { Logo } from "../../components/ui/Logo";
 
 const navItems = [
   { icon: House, label: "Overview", path: "/dashboard" },
@@ -37,9 +38,7 @@ export default function UserLayout() {
         {/* Sidebar */}
         <aside className="sticky top-0 h-screen hidden w-[280px] shrink-0 border-r border-slate-200/60 bg-white px-5 py-6 lg:flex lg:flex-col overflow-y-auto">
           <Link to="/" className="flex items-center gap-3 rounded-2xl px-2 py-2 group shrink-0">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-600/20 transition-transform group-hover:scale-105">
-              <span className="font-display font-bold text-lg">K</span>
-            </span>
+            <Logo iconOnly theme="light" size="md" className="transition-transform group-hover:scale-105" />
             <div>
               <p className="font-display text-sm font-bold tracking-tight text-slate-900">KiosHosting</p>
               <p className="text-xs font-medium text-slate-500">Client Area</p>
@@ -90,9 +89,7 @@ export default function UserLayout() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link to="/" className="flex items-center gap-2 lg:hidden">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm">
-                    <span className="font-display font-bold text-lg">K</span>
-                  </span>
+                  <Logo iconOnly theme="light" size="md" />
                 </Link>
                 <div>
                   <h1 className="font-display text-xl font-bold tracking-tight text-slate-900">Client Portal</h1>
