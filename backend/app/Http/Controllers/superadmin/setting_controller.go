@@ -79,8 +79,6 @@ func seedDefaultSettingsIfEmpty() {
 
 // GetSettings loads global system configuration
 func GetSettings(c *gin.Context) {
-	seedDefaultSettingsIfEmpty()
-
 	var config models.SystemConfig
 	if err := bootstrap.DB.First(&config).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil konfigurasi sistem: " + err.Error()})
@@ -108,8 +106,6 @@ type UpdateSettingsRequest struct {
 
 // UpdateSettings saves updated configuration values
 func UpdateSettings(c *gin.Context) {
-	seedDefaultSettingsIfEmpty()
-
 	var req UpdateSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Format payload tidak valid: " + err.Error()})
@@ -152,8 +148,6 @@ func UpdateSettings(c *gin.Context) {
 
 // ListWebhooks returns all configured webhook endpoints
 func ListWebhooks(c *gin.Context) {
-	seedDefaultSettingsIfEmpty()
-
 	var webhooks []models.Webhook
 	if err := bootstrap.DB.Order("created_at DESC").Find(&webhooks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil daftar webhook"})
@@ -230,8 +224,6 @@ type SafeStaffUser struct {
 
 // ListStaff returns all team members with internal roles
 func ListStaff(c *gin.Context) {
-	seedDefaultSettingsIfEmpty()
-
 	var staffUsers []models.User
 	if err := bootstrap.DB.Where("role != ?", models.RoleUser).Order("role ASC, id ASC").Find(&staffUsers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil daftar staff"})

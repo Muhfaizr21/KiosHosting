@@ -20,6 +20,7 @@ func seedDefaultProductsIfEmpty() {
 			{
 				Name:          "Starter Pro",
 				Price:         15000,
+				YearlyPrice:   150000,
 				BillingCycle:  "monthly",
 				Disk:          "5 GB NVMe",
 				CPU:           "1 Core",
@@ -27,10 +28,14 @@ func seedDefaultProductsIfEmpty() {
 				Bandwidth:     "Unlimited",
 				ActiveClients: 124,
 				Status:        "Active",
+				Target:        "Blogger & UMKM",
+				Features:      "Full NVMe SSD, Free SSL Let's Encrypt, 1 Core CPU / 1 GB RAM, Support WhatsApp, Uptime 99.9%, Auto Backup Mingguan",
+				IsFeatured:    false,
 			},
 			{
 				Name:          "Business Pro",
 				Price:         45000,
+				YearlyPrice:   450000,
 				BillingCycle:  "monthly",
 				Disk:          "20 GB NVMe",
 				CPU:           "2 Core",
@@ -38,10 +43,14 @@ func seedDefaultProductsIfEmpty() {
 				Bandwidth:     "Unlimited",
 				ActiveClients: 56,
 				Status:        "Active",
+				Target:        "Toko Online & UKM",
+				Features:      "Semua Fitur Starter Pro, Prioritas Support 24/7, Domain .com/.id Gratis, Backup Otomatis Harian, DDoS Protection, Staging Environment",
+				IsFeatured:    true,
 			},
 			{
 				Name:          "Enterprise Cloud",
 				Price:         120000,
+				YearlyPrice:   1200000,
 				BillingCycle:  "monthly",
 				Disk:          "Unlimited NVMe",
 				CPU:           "4 Core",
@@ -49,10 +58,40 @@ func seedDefaultProductsIfEmpty() {
 				Bandwidth:     "Unlimited",
 				ActiveClients: 12,
 				Status:        "Active",
+				Target:        "Agency & Developer",
+				Features:      "Semua Fitur Business Pro, Dedicated IP, Akses SSH Penuh, Migrasi Website Gratis, Multi-PHP 7.4 - 8.3, Bebas Migrasi",
+				IsFeatured:    false,
 			},
 		}
 		for _, p := range initialPlans {
 			bootstrap.DB.Create(&p)
+		}
+	} else {
+		// Update existing plans if target or features is empty
+		var starter models.HostingPlan
+		if err := bootstrap.DB.Where("name = ?", "Starter Pro").First(&starter).Error; err == nil && starter.Target == "" {
+			bootstrap.DB.Model(&starter).Updates(map[string]any{
+				"target":       "Blogger & UMKM",
+				"features":     "Full NVMe SSD, Free SSL Let's Encrypt, 1 Core CPU / 1 GB RAM, Support WhatsApp, Uptime 99.9%, Auto Backup Mingguan",
+				"yearly_price": 150000,
+			})
+		}
+		var biz models.HostingPlan
+		if err := bootstrap.DB.Where("name = ?", "Business Pro").First(&biz).Error; err == nil && biz.Target == "" {
+			bootstrap.DB.Model(&biz).Updates(map[string]any{
+				"target":       "Toko Online & UKM",
+				"features":     "Semua Fitur Starter Pro, Prioritas Support 24/7, Domain .com/.id Gratis, Backup Otomatis Harian, DDoS Protection, Staging Environment",
+				"is_featured":  true,
+				"yearly_price": 450000,
+			})
+		}
+		var ent models.HostingPlan
+		if err := bootstrap.DB.Where("name = ?", "Enterprise Cloud").First(&ent).Error; err == nil && ent.Target == "" {
+			bootstrap.DB.Model(&ent).Updates(map[string]any{
+				"target":       "Agency & Developer",
+				"features":     "Semua Fitur Business Pro, Dedicated IP, Akses SSH Penuh, Migrasi Website Gratis, Multi-PHP 7.4 - 8.3, Bebas Migrasi",
+				"yearly_price": 1200000,
+			})
 		}
 	}
 
@@ -85,15 +124,31 @@ func ListHostingPlans(c *gin.Context) {
 	c.JSON(http.StatusOK, plans)
 }
 
+// ListPublicHostingPlans returns only active hosting plans for public landing page
+func ListPublicHostingPlans(c *gin.Context) {
+	seedDefaultProductsIfEmpty()
+
+	var plans []models.HostingPlan
+	if err := bootstrap.DB.Where("status = ?", "Active").Order("price asc").Find(&plans).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal mengambil daftar paket hosting"})
+		return
+	}
+	c.JSON(http.StatusOK, plans)
+}
+
 type hostingPlanInput struct {
 	Name         string  `json:"name"`
 	Price        float64 `json:"price"`
+	YearlyPrice  float64 `json:"yearly_price"`
 	BillingCycle string  `json:"cycle"`
 	Disk         string  `json:"disk"`
 	CPU          string  `json:"cpu"`
 	RAM          string  `json:"ram"`
 	Bandwidth    string  `json:"bandwidth"`
 	Status       string  `json:"status"`
+	Target       string  `json:"target"`
+	Features     string  `json:"features"`
+	Featured     bool    `json:"featured"`
 }
 
 func CreateHostingPlan(c *gin.Context) {
@@ -129,12 +184,16 @@ func CreateHostingPlan(c *gin.Context) {
 	plan := models.HostingPlan{
 		Name:         name,
 		Price:        input.Price,
+		YearlyPrice:  input.YearlyPrice,
 		BillingCycle: cycle,
 		Disk:         disk,
 		CPU:          input.CPU,
 		RAM:          input.RAM,
 		Bandwidth:    input.Bandwidth,
 		Status:       status,
+		Target:       strings.TrimSpace(input.Target),
+		Features:     strings.TrimSpace(input.Features),
+		IsFeatured:    input.Featured,
 	}
 
 	if err := bootstrap.DB.Create(&plan).Error; err != nil {
@@ -173,6 +232,7 @@ func UpdateHostingPlan(c *gin.Context) {
 	if input.Price > 0 {
 		plan.Price = input.Price
 	}
+	plan.YearlyPrice = input.YearlyPrice
 	if input.BillingCycle != "" {
 		plan.BillingCycle = input.BillingCycle
 	}
@@ -191,6 +251,9 @@ func UpdateHostingPlan(c *gin.Context) {
 	if input.Status != "" {
 		plan.Status = input.Status
 	}
+	plan.Target = strings.TrimSpace(input.Target)
+	plan.Features = strings.TrimSpace(input.Features)
+	plan.IsFeatured = input.Featured
 
 	if err := bootstrap.DB.Save(&plan).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal memperbarui paket hosting"})

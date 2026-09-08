@@ -2,20 +2,44 @@ import React, { useEffect } from "react";
 import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { 
   Users, CreditCard, HardDrives, ShieldCheck, 
-  SignOut, ChartPieSlice, Tag, Lifebuoy, GearSix 
+  SignOut, ChartPieSlice, Tag, Lifebuoy, GearSix, Bank,
+  Cpu, Globe 
 } from "@phosphor-icons/react";
 import { Logo } from "../../components/ui/Logo";
 import { getSession, logout, seedAuth } from "../../lib/auth";
 
-const navItems = [
-  { icon: ChartPieSlice, label: "Overview", path: "/admin" },
-  { icon: Users, label: "Clients", path: "/admin/clients" },
-  { icon: CreditCard, label: "Billing", path: "/admin/billing" },
-  { icon: Tag, label: "Products", path: "/admin/products" },
-  { icon: HardDrives, label: "Nodes", path: "/admin/nodes" },
-  { icon: ShieldCheck, label: "Security", path: "/admin/security" },
-  { icon: Lifebuoy, label: "Support", path: "/admin/support" },
-  { icon: GearSix, label: "Settings", path: "/admin/settings" },
+const navSections = [
+  {
+    title: "Ringkasan & Klien",
+    items: [
+      { icon: ChartPieSlice, label: "Overview", path: "/admin" },
+      { icon: Users, label: "Clients", path: "/admin/clients" },
+    ],
+  },
+  {
+    title: "Infrastruktur & Server",
+    items: [
+      { icon: Cpu, label: "Provisioning", path: "/admin/provisioning" },
+      { icon: Globe, label: "Domains & DNS", path: "/admin/domains" },
+      { icon: HardDrives, label: "Server Nodes", path: "/admin/nodes" },
+    ],
+  },
+  {
+    title: "Keuangan & Billing",
+    items: [
+      { icon: CreditCard, label: "Billing & Invoices", path: "/admin/billing" },
+      { icon: Bank, label: "Finance & COA", path: "/admin/finance" },
+      { icon: Tag, label: "Katalog Produk", path: "/admin/products" },
+    ],
+  },
+  {
+    title: "Sistem & Keamanan",
+    items: [
+      { icon: ShieldCheck, label: "Security & WAF", path: "/admin/security" },
+      { icon: Lifebuoy, label: "Support Tickets", path: "/admin/support" },
+      { icon: GearSix, label: "System Settings", path: "/admin/settings" },
+    ],
+  },
 ];
 
 export default function AdminLayout() {
@@ -52,24 +76,37 @@ export default function AdminLayout() {
           </div>
         </Link>
         
-        <nav className="mt-8 flex flex-col gap-1 flex-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.path === '/admin' ? currentPath === '/admin' : currentPath.startsWith(item.path);
-            return (
-              <Link
-                key={item.label}
-                to={item.path}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active 
-                    ? "bg-white/10 text-white shadow-sm" 
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <Icon weight={active ? "fill" : "duotone"} className="h-5 w-5" /> {item.label}
-              </Link>
-            );
-          })}
+        <nav className="mt-6 flex flex-col gap-4 flex-1">
+          {navSections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400/70 font-mono">
+                {section.title}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active =
+                    item.path === "/admin"
+                      ? currentPath === "/admin"
+                      : currentPath.startsWith(item.path);
+                  return (
+                    <Link
+                      key={item.label}
+                      to={item.path}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                        active
+                          ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+                          : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <Icon weight={active ? "fill" : "duotone"} className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="mt-auto pt-4 border-t border-white/10 shrink-0">

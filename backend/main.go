@@ -5,12 +5,14 @@ import (
 	"log"
 	"time"
 
+	"kioshosting-backend/app/http/controllers/superadmin"
 	"kioshosting-backend/bootstrap"
 	"kioshosting-backend/config"
 	"kioshosting-backend/routes"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 func main() {
@@ -21,6 +23,20 @@ func main() {
 	bootstrap.ConnectDatabase()
 	bootstrap.Migrate()
 	bootstrap.SeedDemoAccounts()
+	bootstrap.SeedHostingInfrastructure()
+	bootstrap.SeedFinanceData()
+	bootstrap.SeedSecurityData()
+	bootstrap.SeedSettingsData()
+	bootstrap.SeedSupportTickets()
+
+	// Background Billing Lifecycle & Dunning Automator Runner
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			superadmin.RunDunningAutomationLogic("cron")
+		}
+	}()
 
 	// 3. Set Gin mode based on environment
 	appEnv := config.GetEnv("APP_ENV", "local")
@@ -32,8 +48,12 @@ func main() {
 	router := gin.Default()
 
 	// CORS Config
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"}
+	if origins := config.GetEnv("CORS_ORIGINS", ""); origins != "" {
+		allowedOrigins = strings.Split(origins, ",")
+	}
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

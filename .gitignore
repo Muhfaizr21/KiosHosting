@@ -9,9 +9,12 @@ bin/
 *.dll
 *.so
 *.dylib
+backend/kioshosting-backend
+backend/bin/
 
 # OS
 .DS_Store
+*.password
 
 # Env
 .env

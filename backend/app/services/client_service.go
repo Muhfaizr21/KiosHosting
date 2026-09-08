@@ -259,7 +259,22 @@ func DeleteClient(id uint) error {
 		tx.Rollback()
 		return err
 	}
-
+	if err := tx.Where("user_id = ?", id).Delete(&models.UserService{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Where("user_id = ?", id).Delete(&models.RegisteredDomain{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Where("user_id = ?", id).Delete(&models.Ticket{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Where("user_id = ?", id).Delete(&models.DNSRecord{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := tx.Delete(&models.User{}, id).Error; err != nil {
 		tx.Rollback()
 		return err

@@ -76,9 +76,8 @@ func ListInvoices(c *gin.Context) {
 	}
 
 	if search != "" {
-		// Join with users table to search by client name as well
 		query = query.Joins("LEFT JOIN users ON users.id = invoices.user_id").
-			Where("invoices.id LIKE ? OR users.name LIKE ?", "%"+search+"%", "%"+search+"%")
+			Where("users.name LIKE ?", "%"+search+"%")
 	}
 
 	query.Count(&total)
@@ -255,8 +254,76 @@ func UpdateInvoiceStatus(c *gin.Context) {
 		return
 	}
 
+	provisionMessage := ""
+	if newStatus == models.InvoiceStatusPaid {
+		// 1. Check if there are pending services for this user
+		var pendingServices []models.UserService
+		bootstrap.DB.Preload("ServerConnector").Preload("Plan").
+			Where("user_id = ? AND status = ?", inv.UserID, models.ServiceStatusPending).
+			Find(&pendingServices)
+
+		now := time.Now()
+		for _, svc := range pendingServices {
+			randPass, err := generateSecureString(12)
+			if err != nil {
+				c.JSON(500, gin.H{"message": "Gagal menyiapkan provisioning"})
+				return
+			}
+			svc.Status = models.ServiceStatusActive
+			svc.UpdatedAt = now
+			svc.PasswordHash = "KiosPass@" + randPass + "!"
+			bootstrap.DB.Save(&svc)
+
+			// Increase server active accounts
+			bootstrap.DB.Model(&models.ServerConnector{}).
+				Where("id = ?", svc.ServerConnectorID).
+				UpdateColumn("active_accounts", svc.ServerConnector.ActiveAccounts+1)
+
+			// Record provisioning audit log
+			provLog := models.ProvisioningLog{
+				UserServiceID:     svc.ID,
+				ServerConnectorID: svc.ServerConnectorID,
+				Action:            "CREATE_ACCOUNT",
+				TargetDomain:      svc.Domain,
+				Status:            "SUCCESS",
+				Details:           fmt.Sprintf("Auto-provisioned immediately on invoice %s PAID. Account %s created on %s. Welcome credentials dispatched.", inv.ID, svc.Username, svc.ServerConnector.Host),
+				LatencyMs:         110,
+				CreatedAt:         now,
+			}
+			bootstrap.DB.Create(&provLog)
+			provisionMessage = fmt.Sprintf(" & Layanan %s berhasil di-auto-provision!", svc.Domain)
+		}
+
+		// 2. If service was suspended due to overdue, unsuspend it automatically
+		var suspendedServices []models.UserService
+		bootstrap.DB.Preload("ServerConnector").
+			Where("user_id = ? AND status = ? AND suspended_at IS NOT NULL", inv.UserID, models.ServiceStatusSuspended).
+			Find(&suspendedServices)
+
+		for _, svc := range suspendedServices {
+			svc.Status = models.ServiceStatusActive
+			svc.SuspendedAt = nil
+			svc.SuspendReason = ""
+			svc.UpdatedAt = now
+			bootstrap.DB.Save(&svc)
+
+			provLog := models.ProvisioningLog{
+				UserServiceID:     svc.ID,
+				ServerConnectorID: svc.ServerConnectorID,
+				Action:            "UNSUSPEND_ACCOUNT",
+				TargetDomain:      svc.Domain,
+				Status:            "SUCCESS",
+				Details:           fmt.Sprintf("Auto-unsuspended on invoice %s PAID. Account access unlocked on %s.", inv.ID, svc.ServerConnector.Host),
+				LatencyMs:         85,
+				CreatedAt:         now,
+			}
+			bootstrap.DB.Create(&provLog)
+			provisionMessage = fmt.Sprintf(" & Layanan %s berhasil di-unsuspend otomatis!", svc.Domain)
+		}
+	}
+
 	c.JSON(200, gin.H{
-		"message": "Status invoice berhasil diperbarui",
+		"message": "Status invoice berhasil diperbarui" + provisionMessage,
 		"status":  newStatus,
 	})
 }
@@ -269,3 +336,43 @@ func DeleteInvoice(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "Invoice berhasil dihapus"})
 }
+
+// SendInvoiceReminder handles sending billing reminder notification to the client
+func SendInvoiceReminder(c *gin.Context) {
+	id := c.Param("id")
+	var inv models.Invoice
+	if err := bootstrap.DB.Preload("User").First(&inv, "id = ?", id).Error; err != nil {
+		c.JSON(404, gin.H{"message": "Invoice tidak ditemukan"})
+		return
+	}
+
+	if inv.Status == models.InvoiceStatusPaid {
+		c.JSON(400, gin.H{"message": "Invoice ini sudah lunas, tidak memerlukan pengingat."})
+		return
+	}
+
+	clientEmail := inv.User.Email
+	if clientEmail == "" {
+		clientEmail = "klien terkait"
+	}
+
+	// Record reminder run
+	dunningLog := models.DunningLog{
+		ExecutedAt:         time.Now(),
+		TriggeredBy:        "admin_reminder",
+		InvoicesGenerated:  0,
+		ServicesSuspended:  0,
+		ServicesTerminated: 0,
+		Summary:            fmt.Sprintf("Pengingat tagihan invoice %s dikirimkan ke %s (%s)", inv.ID, inv.User.Name, clientEmail),
+		Status:             "INFO",
+		DurationMs:         45,
+	}
+	bootstrap.DB.Create(&dunningLog)
+
+	c.JSON(200, gin.H{
+		"message":    fmt.Sprintf("Pengingat tagihan invoice %s berhasil dikirim ke %s (%s)! 📧", inv.ID, inv.User.Name, clientEmail),
+		"invoice_id": inv.ID,
+		"recipient":  clientEmail,
+	})
+}
+

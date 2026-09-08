@@ -15,6 +15,10 @@ type HostingPlan struct {
 	Bandwidth     string    `gorm:"size:50;default:'Unlimited'" json:"bandwidth"`
 	ActiveClients int       `gorm:"default:0" json:"clients"`
 	Status        string    `gorm:"size:20;not null;default:'Active'" json:"status"` // Active, Inactive
+	Target        string    `gorm:"size:100;default:''" json:"target"`               // e.g. Blogger & UMKM
+	Features      string    `gorm:"type:text;default:''" json:"features"`             // comma/newline-separated features
+	IsFeatured    bool      `gorm:"default:false" json:"featured"`                   // Popular badge
+	YearlyPrice   float64   `gorm:"default:0" json:"yearly_price"`                   // Yearly discounted price
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

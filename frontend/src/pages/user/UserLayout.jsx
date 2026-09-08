@@ -6,7 +6,7 @@ import { Logo } from "../../components/ui/Logo";
 
 const navItems = [
   { icon: House, label: "Overview", path: "/dashboard" },
-  { icon: HardDrives, label: "Layanan", path: "/dashboard/service/1" },
+  { icon: HardDrives, label: "Layanan", path: "/dashboard/services" },
   { icon: CreditCard, label: "Tagihan", path: "/dashboard/billing" },
   { icon: Lifebuoy, label: "Support", path: "/dashboard/support" },
   { icon: GearSix, label: "Pengaturan", path: "/dashboard/settings" },

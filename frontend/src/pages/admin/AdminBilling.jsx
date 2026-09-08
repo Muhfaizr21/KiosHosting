@@ -16,6 +16,12 @@ import {
   Printer,
   Plus,
   ArrowClockwise,
+  Lightning,
+  ShieldCheck,
+  Lock,
+  Play,
+  GearSix,
+  Check,
 } from "@phosphor-icons/react";
 import { api } from "../../lib/auth";
 
@@ -52,6 +58,19 @@ export default function AdminBilling() {
     status: "Unpaid",
   });
 
+  // Tab Navigation: Invoices vs Dunning Automator
+  const [billingTab, setBillingTab] = useState("invoices"); // "invoices" | "dunning"
+  const [dunningSettings, setDunningSettings] = useState({
+    auto_invoice_days: 14,
+    auto_suspend_days: 3,
+    auto_terminate_days: 30,
+    is_enabled: true,
+    notify_email: true,
+  });
+  const [dunningLogs, setDunningLogs] = useState([]);
+  const [runningDunning, setRunningDunning] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Auto-dismiss toast
   useEffect(() => {
     if (toast) {
@@ -63,6 +82,60 @@ export default function AdminBilling() {
   function showToast(type, message) {
     setToast({ type, message });
   }
+
+  const fetchDunningData = async () => {
+    try {
+      const [sRes, lRes] = await Promise.all([
+        api.get("/admin/dunning/settings"),
+        api.get("/admin/dunning/logs"),
+      ]);
+      if (sRes && sRes.data) setDunningSettings(sRes.data);
+      if (lRes && lRes.data) setDunningLogs(lRes.data);
+    } catch (e) {
+      console.error("Gagal memuat dunning data:", e);
+    }
+  };
+
+  const handleRunDunningNow = async () => {
+    try {
+      setRunningDunning(true);
+      const res = await api.post("/admin/dunning/run");
+      showToast("success", res.message || "Billing Lifecycle Automator berhasil dieksekusi!");
+      await fetchDunningData();
+      await fetchStats();
+      await fetchInvoices();
+    } catch (e) {
+      showToast("error", e.message || "Gagal menjalankan otomatisasi dunning.");
+    } finally {
+      setRunningDunning(false);
+    }
+  };
+
+  const handleSaveDunningSettings = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingSettings(true);
+      const res = await api.put("/admin/dunning/settings", {
+        auto_invoice_days: parseInt(dunningSettings.auto_invoice_days, 10),
+        auto_suspend_days: parseInt(dunningSettings.auto_suspend_days, 10),
+        auto_terminate_days: parseInt(dunningSettings.auto_terminate_days, 10),
+        is_enabled: dunningSettings.is_enabled,
+        notify_email: dunningSettings.notify_email,
+      });
+      showToast("success", res.message || "Pengaturan dunning berhasil disimpan!");
+      if (res && res.data) setDunningSettings(res.data);
+    } catch (e) {
+      showToast("error", e.message || "Gagal menyimpan pengaturan dunning.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    if (billingTab === "dunning") {
+      fetchDunningData();
+    }
+  }, [billingTab]);
 
   async function fetchStats() {
     try {
@@ -192,8 +265,13 @@ export default function AdminBilling() {
     }
   };
 
-  const handleSendReminder = (inv) => {
-    showToast("info", `Pengingat tagihan ${inv.id} berhasil dikirim ke ${inv.client}! 📧`);
+  const handleSendReminder = async (inv) => {
+    try {
+      const res = await api("POST", `/admin/billing/invoices/${inv.id}/remind`);
+      showToast("success", res.message || `Pengingat tagihan ${inv.id} berhasil dikirim ke ${inv.client}! 📧`);
+    } catch (err) {
+      showToast("error", err.message || "Gagal mengirimkan pengingat tagihan.");
+    }
   };
 
   const handleExportCSV = () => {
@@ -281,9 +359,39 @@ export default function AdminBilling() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setBillingTab("invoices")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            billingTab === "invoices"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
+        >
+          <Receipt weight={billingTab === "invoices" ? "fill" : "duotone"} className="h-4 w-4" />
+          Daftar Tagihan & Invoice
+        </button>
+
+        <button
+          onClick={() => setBillingTab("dunning")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            billingTab === "dunning"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
+        >
+          <Lightning weight={billingTab === "dunning" ? "fill" : "duotone"} className="h-4 w-4 text-amber-400" />
+          Billing Lifecycle & Dunning Automator
+        </button>
+      </div>
+
+      {/* ==================== TAB 1: INVOICES & STATS ==================== */}
+      {billingTab === "invoices" && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-slate-500">Unpaid Invoices</p>
           <p className="mt-1 font-display text-2xl font-bold text-slate-900">
             Rp {(stats.unpaid_total || 0).toLocaleString("id-ID")}
@@ -476,6 +584,279 @@ export default function AdminBilling() {
           </div>
         </div>
       </div>
+      </>
+      )}
+
+      {/* ==================== TAB 2: DUNNING & LIFECYCLE AUTOMATOR ==================== */}
+      {billingTab === "dunning" && (
+        <div className="space-y-6">
+          {/* Visual Policy Timeline */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wide border border-amber-200">
+                  <Lightning weight="fill" className="h-3.5 w-3.5" />
+                  Scheduled Automated Engine
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 mt-1 font-display">
+                  Siklus Penagihan & Otomasi Dunning (H-14, H+3, H+30)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Cron job berjalan setiap 1 jam untuk memproses invoice perpanjangan, pembekuan otomatis, dan pembersihan server.
+                </p>
+              </div>
+
+              <button
+                onClick={handleRunDunningNow}
+                disabled={runningDunning}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition-all active:scale-[0.98] shrink-0"
+              >
+                {runningDunning ? (
+                  <CircleNotch className="h-4 w-4 animate-spin text-white" />
+                ) : (
+                  <Play weight="fill" className="h-4 w-4" />
+                )}
+                Jalankan Otomasi Sekarang
+              </button>
+            </div>
+
+            {/* Timeline Stepper */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100 relative">
+                <div className="h-7 w-7 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center mb-2 shadow-sm">
+                  1
+                </div>
+                <div className="text-xs font-bold text-blue-900">H-14: Terbitkan Invoice</div>
+                <p className="text-[11px] text-blue-700 mt-1 leading-relaxed">
+                  Sistem otomatis men-generate invoice perpanjangan 14 hari sebelum layanan expired & mengirim notifikasi WhatsApp/Email.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 relative">
+                <div className="h-7 w-7 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center justify-center mb-2 shadow-sm">
+                  2
+                </div>
+                <div className="text-xs font-bold text-slate-900">Hari H: Jatuh Tempo</div>
+                <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                  Layanan mencapai tanggal kadaluarsa. Notifikasi tagihan jatuh tempo terkirim ke klien secara otomatis.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 relative">
+                <div className="h-7 w-7 rounded-lg bg-amber-500 text-white font-bold text-xs flex items-center justify-center mb-2 shadow-sm">
+                  3
+                </div>
+                <div className="text-xs font-bold text-amber-900">H+3: Auto-Suspend</div>
+                <p className="text-[11px] text-amber-800 mt-1 leading-relaxed">
+                  Jika belum dibayar, akun hosting/VPS otomatis dibekukan di server cPanel/Proxmox untuk menghentikan konsumsi bandwidth.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200 relative">
+                <div className="h-7 w-7 rounded-lg bg-rose-600 text-white font-bold text-xs flex items-center justify-center mb-2 shadow-sm">
+                  4
+                </div>
+                <div className="text-xs font-bold text-rose-900">H+30: Auto-Terminate</div>
+                <p className="text-[11px] text-rose-800 mt-1 leading-relaxed">
+                  Setelah 30 hari menunggak, data akun dihapus dari server untuk mencegah resource starvation & membebaskan storage.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Dunning Configuration Form */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-1">
+              <GearSix weight="duotone" className="h-5 w-5 text-slate-600" />
+              Parameter Kebijakan Dunning
+            </h3>
+            <p className="text-xs text-slate-500 mb-5">
+              Sesuaikan ambang batas hari dan notifikasi otomatis sesuai kebijakan operasional KiosHosting.
+            </p>
+
+            <form onSubmit={handleSaveDunningSettings} className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs">
+              <div className="space-y-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="font-bold text-slate-700 block">
+                  Invoice Perpanjangan (Hari Sebelum Expired)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-500 text-sm">H -</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={dunningSettings.auto_invoice_days}
+                    onChange={(e) =>
+                      setDunningSettings({ ...dunningSettings, auto_invoice_days: e.target.value })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="text-slate-500 font-medium">Hari</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="font-bold text-slate-700 block">
+                  Auto-Suspend Layanan (Hari Setelah Telat)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-500 text-sm">H +</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={dunningSettings.auto_suspend_days}
+                    onChange={(e) =>
+                      setDunningSettings({ ...dunningSettings, auto_suspend_days: e.target.value })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="text-slate-500 font-medium">Hari</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="font-bold text-slate-700 block">
+                  Auto-Terminate & Purge Data (Hari)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-500 text-sm">H +</span>
+                  <input
+                    type="number"
+                    min="7"
+                    max="90"
+                    value={dunningSettings.auto_terminate_days}
+                    onChange={(e) =>
+                      setDunningSettings({ ...dunningSettings, auto_terminate_days: e.target.value })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="text-slate-500 font-medium">Hari</span>
+                </div>
+              </div>
+
+              <div className="sm:col-span-3 flex flex-wrap items-center justify-between gap-4 pt-2">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dunningSettings.is_enabled}
+                      onChange={(e) =>
+                        setDunningSettings({ ...dunningSettings, is_enabled: e.target.checked })
+                      }
+                      className="h-4 w-4 text-amber-600 rounded border-slate-300"
+                    />
+                    <span className="font-semibold text-slate-800">
+                      Aktifkan Dunning Automator Otomatis
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dunningSettings.notify_email}
+                      onChange={(e) =>
+                        setDunningSettings({ ...dunningSettings, notify_email: e.target.checked })
+                      }
+                      className="h-4 w-4 text-amber-600 rounded border-slate-300"
+                    />
+                    <span className="font-semibold text-slate-800">
+                      Kirim Email Notifikasi ke Klien
+                    </span>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold shadow-sm transition-all"
+                >
+                  {savingSettings ? "Menyimpan..." : "Simpan Parameter Dunning"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Dunning Execution History Table */}
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Riwayat Eksekusi Otomasi Dunning</h3>
+                <p className="text-xs text-slate-500">Audit trail cron runner dan pemicu manual</p>
+              </div>
+              <button
+                onClick={fetchDunningData}
+                className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold flex items-center gap-1.5"
+              >
+                <ArrowClockwise className="h-3.5 w-3.5" />
+                Refresh
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-semibold uppercase tracking-wider">
+                    <th className="py-3 px-4">Waktu Eksekusi</th>
+                    <th className="py-3 px-4">Pemicu</th>
+                    <th className="py-3 px-4">Invoice Dibuat (H-14)</th>
+                    <th className="py-3 px-4">Akun Disuspend (H+3)</th>
+                    <th className="py-3 px-4">Akun Diterminate (H+30)</th>
+                    <th className="py-3 px-4">Durasi</th>
+                    <th className="py-3 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {dunningLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="py-8 text-center text-slate-400">
+                        Belum ada riwayat eksekusi dunning.
+                      </td>
+                    </tr>
+                  ) : (
+                    dunningLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-slate-800">
+                          {new Date(log.executed_at).toLocaleString("id-ID")}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                              log.triggered_by === "cron"
+                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                : "bg-purple-50 text-purple-700 border border-purple-200"
+                            }`}
+                          >
+                            {log.triggered_by}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900">
+                          +{log.invoices_generated}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-amber-600">
+                          {log.services_suspended}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-rose-600">
+                          {log.services_terminated}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-slate-500">
+                          {log.duration_ms}ms
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle weight="fill" className="h-3.5 w-3.5 text-emerald-500" />
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ==================== CREATE INVOICE MODAL ==================== */}
       {showCreateModal && (

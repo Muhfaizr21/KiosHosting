@@ -31,7 +31,11 @@ func NormalizeEmail(email string) string {
 }
 
 func jwtSecret() []byte {
-	return []byte(config.GetEnv("JWT_SECRET", "kioshosting-dev-secret-change-me"))
+	secret := config.GetEnv("JWT_SECRET", "")
+	if secret == "" {
+		panic("JWT_SECRET must be set")
+	}
+	return []byte(secret)
 }
 
 func SignToken(userID uint, role, email, name string) (string, error) {

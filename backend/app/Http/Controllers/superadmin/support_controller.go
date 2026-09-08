@@ -115,8 +115,6 @@ func seedDefaultTicketsIfEmpty() {
 
 // ListTickets returns all tickets matching filter criteria and overall summary statistics
 func ListTickets(c *gin.Context) {
-	seedDefaultTicketsIfEmpty()
-
 	search := strings.TrimSpace(c.Query("search"))
 	status := strings.TrimSpace(c.Query("status"))
 	dept := strings.TrimSpace(c.Query("department"))

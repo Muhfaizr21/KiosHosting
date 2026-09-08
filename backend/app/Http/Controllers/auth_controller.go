@@ -96,12 +96,17 @@ func Login(c *gin.Context) {
 }
 
 func Me(c *gin.Context) {
-	user, ok := c.Get("user")
+	val, ok := c.Get("user")
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Tidak terautentikasi"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	user, ok := val.(models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user": toUserResponse(user)})
 }
 
 func respondAuth(c *gin.Context, user models.User) {

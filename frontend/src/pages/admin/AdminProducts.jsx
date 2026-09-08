@@ -30,12 +30,16 @@ export default function AdminProducts() {
   // Plan Form
   const [planForm, setPlanForm] = useState({
     name: "",
+    target: "",
     price: "",
+    yearly_price: "",
     cycle: "monthly",
     disk: "10 GB NVMe",
     cpu: "1 Core",
     ram: "1 GB",
     bandwidth: "Unlimited",
+    features: "",
+    featured: false,
     status: "Active",
   });
 
@@ -85,12 +89,16 @@ export default function AdminProducts() {
   const handleOpenAddPlan = () => {
     setPlanForm({
       name: "",
+      target: "",
       price: "",
+      yearly_price: "",
       cycle: "monthly",
       disk: "10 GB NVMe",
       cpu: "1 Core",
       ram: "1 GB",
       bandwidth: "Unlimited",
+      features: "Full NVMe SSD, Free SSL Let's Encrypt, Support 24/7, Uptime 99.9%",
+      featured: false,
       status: "Active",
     });
     setModalType("plan-create");
@@ -100,12 +108,16 @@ export default function AdminProducts() {
     setSelectedPlan(plan);
     setPlanForm({
       name: plan.name,
+      target: plan.target || "",
       price: plan.price,
+      yearly_price: plan.yearly_price || "",
       cycle: plan.cycle || "monthly",
       disk: plan.disk,
       cpu: plan.cpu || "1 Core",
       ram: plan.ram || "1 GB",
       bandwidth: plan.bandwidth || "Unlimited",
+      features: plan.features || "",
+      featured: Boolean(plan.featured),
       status: plan.status || "Active",
     });
     setModalType("plan-edit");
@@ -128,12 +140,16 @@ export default function AdminProducts() {
       setActionLoading(true);
       const payload = {
         name: planForm.name,
+        target: planForm.target,
         price: numPrice,
+        yearly_price: planForm.yearly_price ? parseFloat(planForm.yearly_price) : 0,
         cycle: planForm.cycle,
         disk: planForm.disk,
         cpu: planForm.cpu,
         ram: planForm.ram,
         bandwidth: planForm.bandwidth,
+        features: planForm.features,
+        featured: Boolean(planForm.featured),
         status: planForm.status,
       };
 
@@ -346,8 +362,20 @@ export default function AdminProducts() {
                     className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-display font-bold text-slate-900 text-base">{plan.name}</h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display font-bold text-slate-900 text-base">{plan.name}</h3>
+                            {plan.featured && (
+                              <span className="inline-flex rounded-full bg-cyan-100 text-cyan-800 border border-cyan-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                ★ Populer
+                              </span>
+                            )}
+                          </div>
+                          {plan.target && (
+                            <p className="text-xs text-slate-500 mt-0.5">{plan.target}</p>
+                          )}
+                        </div>
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                             plan.status === "Active"
@@ -359,11 +387,18 @@ export default function AdminProducts() {
                         </span>
                       </div>
 
-                      <div className="mt-3 flex items-baseline gap-1">
-                        <span className="text-2xl font-display font-extrabold text-slate-900">
-                          Rp {Number(plan.price).toLocaleString("id-ID")}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500">/{plan.cycle}</span>
+                      <div className="mt-3">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-display font-extrabold text-slate-900">
+                            Rp {Number(plan.price).toLocaleString("id-ID")}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500">/{plan.cycle}</span>
+                        </div>
+                        {plan.yearly_price > 0 && (
+                          <div className="text-[11px] text-emerald-600 font-medium mt-0.5">
+                            Rp {Number(plan.yearly_price).toLocaleString("id-ID")}/thn (Landing)
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-4 space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3">
@@ -513,7 +548,7 @@ export default function AdminProducts() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in [color-scheme:light]">
           <div
             style={{ colorScheme: "light" }}
-            className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 text-slate-900"
+            className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 text-slate-900 custom-scrollbar"
           >
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -536,25 +571,40 @@ export default function AdminProducts() {
             </div>
 
             <form onSubmit={handleSavePlan} className="mt-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Nama Paket
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={planForm.name}
-                  onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
-                  placeholder="cth. Cloud VPS Standard"
-                  style={{ colorScheme: "light" }}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Harga (IDR)
+                    Nama Paket
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={planForm.name}
+                    onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                    placeholder="cth. Cloud VPS Standard"
+                    style={{ colorScheme: "light" }}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Target Segmen (Landing)
+                  </label>
+                  <input
+                    type="text"
+                    value={planForm.target}
+                    onChange={(e) => setPlanForm({ ...planForm, target: e.target.value })}
+                    placeholder="cth. Blogger & UMKM"
+                    style={{ colorScheme: "light" }}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Harga Bulanan (IDR)
                   </label>
                   <input
                     type="number"
@@ -570,7 +620,22 @@ export default function AdminProducts() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Siklus Tagihan
+                    Harga Tahunan (IDR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={planForm.yearly_price}
+                    onChange={(e) => setPlanForm({ ...planForm, yearly_price: e.target.value })}
+                    placeholder="cth. 450000"
+                    style={{ colorScheme: "light" }}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Siklus Tagihan Default
                   </label>
                   <select
                     value={planForm.cycle}
@@ -582,6 +647,39 @@ export default function AdminProducts() {
                     <option value="yearly">Tahunan (yearly)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Checkbox Featured / Populer */}
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <input
+                  type="checkbox"
+                  id="plan-featured"
+                  checked={planForm.featured}
+                  onChange={(e) => setPlanForm({ ...planForm, featured: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="plan-featured" className="text-xs font-medium text-slate-800 cursor-pointer select-none">
+                  <span className="font-bold text-slate-900">Tandai sebagai Paket Populer (Best Seller)</span>
+                  <span className="block text-slate-500">Akan memunculkan badge "Populer" dan highlight glow di landing page</span>
+                </label>
+              </div>
+
+              {/* Fitur Landing Page */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Fitur Unggulan (Landing Page)
+                </label>
+                <textarea
+                  rows={3}
+                  value={planForm.features}
+                  onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
+                  placeholder="Full NVMe SSD, Free SSL Let's Encrypt, Support WhatsApp, Uptime 99.9%, Auto Backup"
+                  style={{ colorScheme: "light" }}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-500/20 leading-relaxed"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Pisahkan fitur dengan koma (,) atau baris baru agar rapi saat tampil di landing page.
+                </p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">

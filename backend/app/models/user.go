@@ -49,5 +49,16 @@ func AutoMigrate(db *gorm.DB) error {
 		&TicketReply{},
 		&SystemConfig{},
 		&Webhook{},
+		&BlockedIP{},
+		&SecuritySetting{},
+		&AccountCOA{},
+		&CashflowTransaction{},
+		&ServerConnector{},
+		&UserService{},
+		&ProvisioningLog{},
+		&RegisteredDomain{},
+		&DNSRecord{},
+		&DunningSetting{},
+		&DunningLog{},
 	)
 }
